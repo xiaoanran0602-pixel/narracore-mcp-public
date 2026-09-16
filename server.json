@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "cn.narracore/screenplay-formatter",
   "title": "Narracore Screenplay Formatter",
-  "description": "Turn rough screenplay text into professionally structured screenplay blocks and a print-ready PDF (Chinese/English, fixed typewriter grid, identical layout to narracore.cn). One free formatting per day; paid packs $1.49/10, $5.99/50 at narracore.app/checkout.",
+  "description": "Screenplay text to print-ready PDF, Chinese/English. One free format/day; packs from $1.49.",
   "version": "1.0.0",
   "websiteUrl": "https://narracore.app",
   "repository": {
