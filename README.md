@@ -57,6 +57,11 @@ Step-by-step: [docs/install-gemini.md](docs/install-gemini.md)
 | Tool | What it does |
 | --- | --- |
 | `format_screenplay` | Parse rough text → structured blocks → layout diagnostics → print-ready PDF (free `validate_only` mode included) |
+| `analyze_screenplay` | Deterministic stats: scene list with parsed headings, character table, dialogue ratio, action density |
+| `diagnose_scenes` | Scene shootability diagnosis — the calling AI cites evidence, the server validates and scores 0-100 (`material` mode free) |
+| `convert_fountain` | Blocks ↔ Fountain (plain-text screenplay interchange format), both directions |
+| `build_video_prompts` | Screenplay → structured video-prompt scaffolds: ~15s segments, ≤4 shots each, character registry, dialogue pre-filled verbatim, style guidance (checklist / editable presets / your own note) |
+| `check_video_prompts` | Free deterministic checks of finished video prompts against the screenplay: dialogue-verbatim lock, cut-point handoff, shared-content rules (violations) + eyeline/rhetoric/conflict advisories |
 | `check_credits` | Show remaining formatting credits for a license key |
 
 Structured input (typed blocks), diagnostics codes, and header-based auth are documented in the tool descriptions themselves — your AI already knows how to use them.
