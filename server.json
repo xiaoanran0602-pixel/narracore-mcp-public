@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "cn.narracore/screenplay-formatter",
   "title": "Narracore Screenplay Formatter",
-  "description": "Screenplay toolkit over MCP: format to print-ready PDF, deterministic stats (scenes / character table), scene shootability diagnosis (AI cites evidence, server scores), Fountain conversion, and video-prompt scaffolds with free drift-proof checks (dialogue verbatim lock, cut-point handoff). Chinese/English/mixed. One free screenplay/day; packs from $1.49 — one use covers one screenplay for 24 hours across all tools.",
-  "version": "1.2.0",
+  "description": "Screenplay, film and story toolkit over MCP: PDF formatting, stats, diagnosis, video prompts.",
+  "version": "1.3.0",
   "websiteUrl": "https://narracore.app",
   "repository": {
     "url": "https://github.com/xiaoanran0602-pixel/narracore-mcp-public",
