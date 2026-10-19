@@ -129,6 +129,7 @@ Your text is used only to produce your result. PDFs are deleted after 24 hours. 
 - Product page: [narracore.app](https://narracore.app)
 - Service endpoint: [mcp.narracore.app/mcp](https://mcp.narracore.app/mcp)
 - Registry entry: `cn.narracore/screenplay-formatter`
+- Open-source core: [narracore-format](https://github.com/xiaoanran0602-pixel/narracore-format) — the formatting engine as a free, local MCP server / DSH plugin (text output; PDF export stays here)
 - Security: [SECURITY.md](SECURITY.md)
 
 ---
