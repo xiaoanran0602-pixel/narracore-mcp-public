@@ -1,0 +1,117 @@
+# narracore.app 机外拨测（1118 整机活锁 10.5h 无人知晓的根治项）：
+# 机器死透时机内一切设施（autoheal / cron / 云助手）全灭，只有机器外能喊人。
+# 每 5 分钟探 mcp.narracore.app/health（须 200 且 "ok":true）与 narracore.app（须 200）；
+# 连败 2 次才开 Issue（防单次抖动误报；所有者 watch 本仓 → 默认邮件通知），恢复自动评论+关单。
+# 状态存 data/healthcheck-state.json，稳态不提交（无时间戳字段），故障期最多写 3 次。
+# keepalive 防 GitHub「仓库 60 天不活跃自动停 cron」。runner 只发 HTTPS GET，
+# 不碰 SSH（0920 禁令：海外 IP 禁 SSH 到阿里云——本 workflow 合规）。
+name: healthcheck
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      test_url:
+        description: '演练用：只测此 URL（如指向 404 路径验证告警链路）'
+        required: false
+        default: ''
+      force_alert:
+        description: '当次失败即告警（跳过连败 2 次防抖，演练用）'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: healthcheck
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 拨测
+        id: probe
+        env:
+          TEST_URL: ${{ inputs.test_url }}
+        run: |
+          set -u
+          if [ -n "$TEST_URL" ]; then
+            set -- "$TEST_URL"
+          else
+            set -- "https://mcp.narracore.app/health" "https://narracore.app/"
+          fi
+          ok=1; detail=""
+          for u in "$@"; do
+            code=$(curl -sS -m 20 -o /tmp/body -w '%{http_code}' "$u" 2>/tmp/err) || code=000
+            if [ "$code" = "200" ] && [ "$u" = "https://mcp.narracore.app/health" ]; then
+              grep -q '"ok"[ ]*:[ ]*true' /tmp/body || code=body-no-ok
+            fi
+            detail="$detail $u=$code"
+            [ "$code" = "200" ] || ok=0
+          done
+          echo "ok=$ok" >> "$GITHUB_OUTPUT"
+          echo "detail=$detail" >> "$GITHUB_OUTPUT"
+          echo "探测:$detail"
+
+      - name: 状态机与告警
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROBE_OK: ${{ steps.probe.outputs.ok }}
+          PROBE_DETAIL: ${{ steps.probe.outputs.detail }}
+          FORCE_ALERT: ${{ inputs.force_alert }}
+        run: |
+          set -eu
+          state=data/healthcheck-state.json
+          streak=0
+          if [ -f "$state" ]; then streak=$(jq -r '.streak // 0' "$state"); fi
+          gh label create healthcheck --color d73a4a --description '拨测告警' >/dev/null 2>&1 || true
+          open_issue() { gh issue list --label healthcheck --state open --json number -q '.[0].number // empty' || true; }
+
+          if [ "$PROBE_OK" = "1" ]; then
+            newstreak=0
+            issue=$(open_issue)
+            if [ -n "$issue" ]; then
+              gh issue close "$issue" --comment "✅ 恢复：$PROBE_DETAIL（$(date -u +%FT%TZ)）"
+              echo "已关单 #$issue（恢复）"
+            fi
+          else
+            newstreak=$((streak + 1))
+            if [ "$newstreak" -ge 2 ] || [ "$FORCE_ALERT" = "true" ]; then
+              issue=$(open_issue)
+              if [ -n "$issue" ]; then
+                echo "已有开单 #$issue，持续失败中（streak=$newstreak），不重复评论防邮件轰炸"
+              else
+                msg="🔴 拨测失败（连续 $newstreak 次）：$PROBE_DETAIL（$(date -u +%FT%TZ)）——排障入口：实现仓库 narracore-mcp 的 ops/RUNBOOK §五"
+                gh issue create --title "[healthcheck] narracore.app 不可用" --body "$msg" --label healthcheck
+                echo "已开 Issue 告警"
+              fi
+            else
+              echo "首次失败（streak=1），防抖不开单"
+            fi
+          fi
+
+          # 状态落盘：稳态（streak 保持 0 且 detail 不变）零提交；故障期最多写到 streak=3
+          if [ "$PROBE_OK" = "1" ] || [ "$newstreak" -le 3 ]; then
+            mkdir -p data
+            jq -n --argjson s "$newstreak" --arg d "$PROBE_DETAIL" \
+              '{streak: $s, last_ok: ($s == 0), last_detail: $d}' > "$state"
+            cat "$state"
+            if ! git diff --quiet; then
+              git config user.name 'narracore-healthcheck-bot'
+              git config user.email 'actions@users.noreply.github.com'
+              git add "$state"
+              git commit -m "chore: healthcheck state streak=$newstreak [skip ci]" >/dev/null
+              git push
+            fi
+          fi
+
+      - uses: gautamkrishnar/keepalive-workflow@v2
+        env:
+          GH_TOKEN: ${{ github.token }}
